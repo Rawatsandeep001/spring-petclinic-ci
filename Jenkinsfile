@@ -1,43 +1,44 @@
-```groovy
 pipeline {
 
-    agent any
+```
+agent any
 
-    stages {
+stages {
 
-        stage('Code Checkout') {
+    stage('Code Checkout') {
 
-            steps {
-                git 'https://github.com/Rawatsandeep001/spring-petclinic-ci.git'
-            }
+        steps {
+            git 'https://github.com/Rawatsandeep001/spring-petclinic-ci.git'
         }
+    }
 
-        stage('Parallel Scans') {
+    stage('Parallel Scans') {
 
-            parallel {
+        parallel {
 
-                stage('Code Stability') {
+            stage('Code Stability') {
 
-                    steps {
-                        sh 'mvn clean test'
-                    }
+                steps {
+                    sh 'mvn clean test'
                 }
+            }
 
-                stage('Code Quality Analysis') {
+            stage('Code Quality Analysis') {
 
-                    steps {
-                        echo 'SonarQube Stage Running'
-                    }
+                steps {
+                    echo 'SonarQube Stage Running'
                 }
+            }
 
-                stage('Code Coverage Analysis') {
+            stage('Code Coverage Analysis') {
 
-                    steps {
-                        sh 'mvn test jacoco:report'
-                    }
+                steps {
+                    sh 'mvn test jacoco:report'
                 }
             }
         }
     }
 }
 ```
+
+}
