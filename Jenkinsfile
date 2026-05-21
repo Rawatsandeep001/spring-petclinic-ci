@@ -60,9 +60,6 @@ pipeline {
 
                         echo 'SonarQube Stage Running'
 
-                        // Uncomment after SonarQube setup
-
-                        /*
                         withSonarQubeEnv('jenkins-test') {
 
                             sh '''
@@ -70,7 +67,6 @@ pipeline {
                             -Dsonar.projectKey=jenkins-test
                             '''
                         }
-                        */
                     }
                 }
 
@@ -92,11 +88,27 @@ pipeline {
 
             steps {
 
-                echo 'Generating Build Report'
-
                 junit '**/target/surefire-reports/*.xml'
 
-                archiveArtifacts artifacts: 'target/site/jacoco/*.*', fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'target/site/jacoco/*.*',
+                    fingerprint: true
+                )
+            }
+        }
+
+        stage('Quality Gate') {
+
+            when {
+                expression { !params.SKIP_SONAR }
+            }
+
+            steps {
+
+                timeout(time: 2, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
@@ -136,15 +148,6 @@ pipeline {
                 subject: "SUCCESS: ${env.JOB_NAME}",
                 body: "Build completed successfully"
             )
-
-            // Slack setup required before use
-
-            /*
-            slackSend(
-                channel: '#jenkins',
-                message: "SUCCESS: ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
-            )
-            */
         }
 
         failure {
@@ -156,15 +159,6 @@ pipeline {
                 subject: "FAILED: ${env.JOB_NAME}",
                 body: "Build failed"
             )
-
-            // Slack setup required before use
-
-            /*
-            slackSend(
-                channel: '#jenkins',
-                message: "FAILED: ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
-            )
-            */
         }
     }
 }
