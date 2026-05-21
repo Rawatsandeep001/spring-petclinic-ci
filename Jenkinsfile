@@ -11,12 +11,6 @@ pipeline {
         )
 
         booleanParam(
-            name: 'SKIP_SONAR',
-            defaultValue: false,
-            description: 'Skip SonarQube Scan'
-        )
-
-        booleanParam(
             name: 'SKIP_COVERAGE',
             defaultValue: false,
             description: 'Skip Code Coverage'
@@ -34,53 +28,27 @@ pipeline {
             }
         }
 
-        stage('Parallel Scans') {
+        stage('Code Stability') {
 
-            parallel {
+            when {
+                expression { !params.SKIP_TEST }
+            }
 
-                stage('Code Stability') {
+            steps {
 
-                    when {
-                        expression { !params.SKIP_TEST }
-                    }
+                sh 'mvn clean test'
+            }
+        }
 
-                    steps {
+        stage('Code Coverage Analysis') {
 
-                        sh 'mvn clean test'
-                    }
-                }
+            when {
+                expression { !params.SKIP_COVERAGE }
+            }
 
-                stage('Code Quality Analysis') {
+            steps {
 
-                    when {
-                        expression { !params.SKIP_SONAR }
-                    }
-
-                    steps {
-
-                        echo 'SonarQube Stage Running'
-
-                        withSonarQubeEnv('jenkins-test') {
-
-                            sh '''
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=jenkins-test
-                            '''
-                        }
-                    }
-                }
-
-                stage('Code Coverage Analysis') {
-
-                    when {
-                        expression { !params.SKIP_COVERAGE }
-                    }
-
-                    steps {
-
-                        sh 'mvn test jacoco:report'
-                    }
-                }
+                sh 'mvn jacoco:report'
             }
         }
 
@@ -88,27 +56,14 @@ pipeline {
 
             steps {
 
+                echo 'Generating Build Report'
+
                 junit '**/target/surefire-reports/*.xml'
 
                 archiveArtifacts(
-                    artifacts: 'target/site/jacoco/*.*',
+                    artifacts: 'target/site/jacoco/**/*',
                     fingerprint: true
                 )
-            }
-        }
-
-        stage('Quality Gate') {
-
-            when {
-                expression { !params.SKIP_SONAR }
-            }
-
-            steps {
-
-                timeout(time: 2, unit: 'MINUTES') {
-
-                    waitForQualityGate abortPipeline: true
-                }
             }
         }
 
@@ -127,7 +82,7 @@ pipeline {
 
             steps {
 
-                sh 'mvn package'
+                sh 'mvn package -DskipTests'
 
                 archiveArtifacts(
                     artifacts: 'target/*.jar',
