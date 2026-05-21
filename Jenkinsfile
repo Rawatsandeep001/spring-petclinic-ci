@@ -1,14 +1,8 @@
 pipeline {
+
 agent any
 
 stages {
-
-    stage('Code Checkout') {
-
-        steps {
-            git 'https://github.com/Rawatsandeep001/spring-petclinic-ci.git'
-        }
-    }
 
     stage('Parallel Scans') {
 
