@@ -11,6 +11,12 @@ pipeline {
         )
 
         booleanParam(
+            name: 'SKIP_SONAR',
+            defaultValue: false,
+            description: 'Skip SonarQube Scan'
+        )
+
+        booleanParam(
             name: 'SKIP_COVERAGE',
             defaultValue: false,
             description: 'Skip Code Coverage'
@@ -40,6 +46,25 @@ pipeline {
             }
         }
 
+        stage('Code Quality Analysis') {
+
+            when {
+                expression { !params.SKIP_SONAR }
+            }
+
+            steps {
+
+                withSonarQubeEnv('jenkins-test') {
+
+                    sh '''
+                    mvn clean verify sonar:sonar \
+                    -Dsonar.projectKey=jenkins-test \
+                    -Dsonar.host.url=http://192.168.73.191:9000
+                    '''
+                }
+            }
+        }
+
         stage('Code Coverage Analysis') {
 
             when {
@@ -49,6 +74,21 @@ pipeline {
             steps {
 
                 sh 'mvn jacoco:report'
+            }
+        }
+
+        stage('Quality Gate') {
+
+            when {
+                expression { !params.SKIP_SONAR }
+            }
+
+            steps {
+
+                timeout(time: 2, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
