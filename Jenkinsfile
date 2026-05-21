@@ -1,42 +1,79 @@
 pipeline {
+
     agent any
 
     parameters {
-        booleanParam(name: 'SKIP_TEST', defaultValue: false, description: 'Skip Unit Test')
-        booleanParam(name: 'SKIP_SONAR', defaultValue: false, description: 'Skip SonarQube')
-        booleanParam(name: 'SKIP_COVERAGE', defaultValue: false, description: 'Skip Coverage')
+
+        booleanParam(
+            name: 'SKIP_TEST',
+            defaultValue: false,
+            description: 'Skip Unit Test'
+        )
+
+        booleanParam(
+            name: 'SKIP_SONAR',
+            defaultValue: false,
+            description: 'Skip SonarQube'
+        )
+
+        booleanParam(
+            name: 'SKIP_COVERAGE',
+            defaultValue: false,
+            description: 'Skip Coverage'
+        )
     }
 
     stages {
 
         stage('Code Checkout') {
+
             steps {
                 checkout scm
             }
         }
 
         stage('Parallel Scans') {
+
             parallel {
 
                 stage('Code Stability') {
-                    when { expression { !params.SKIP_TEST } }
+
+                    when {
+                        expression { !params.SKIP_TEST }
+                    }
+
                     steps {
+
                         sh 'mvn clean test'
                     }
                 }
 
                 stage('Code Quality Analysis') {
-                    when { expression { !params.SKIP_SONAR } }
+
+                    when {
+                        expression { !params.SKIP_SONAR }
+                    }
+
                     steps {
-                        withSonarQubeEnv('SonarServer') {
-                            sh 'mvn sonar:sonar'
+
+                        withSonarQubeEnv('jenkins-test') {
+
+                            sh '''
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=jenkins-test
+                            '''
                         }
                     }
                 }
 
                 stage('Code Coverage Analysis') {
-                    when { expression { !params.SKIP_COVERAGE } }
+
+                    when {
+                        expression { !params.SKIP_COVERAGE }
+                    }
+
                     steps {
+
                         sh 'mvn test jacoco:report'
                     }
                 }
@@ -44,42 +81,81 @@ pipeline {
         }
 
         stage('Quality Gate Report') {
+
+            when {
+                expression { !params.SKIP_SONAR }
+            }
+
             steps {
-                waitForQualityGate abortPipeline: true
+
+                timeout(time: 2, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('Approval Before Publish') {
+
             steps {
-                input message: 'Approve to publish artifact?', ok: 'Approve'
+
+                input(
+                    message: 'Approve to publish artifact?',
+                    ok: 'Approve'
+                )
             }
         }
 
         stage('Publish Artifacts') {
+
             steps {
+
                 sh 'mvn package'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+
+                archiveArtifacts(
+                    artifacts: 'target/*.jar',
+                    fingerprint: true
+                )
             }
         }
     }
 
     post {
-        success {
-            slackSend channel: '#jenkins',
-                      message: "Build Success: ${env.JOB_NAME}"
 
-            mail to: 'yourmail@gmail.com',
-                 subject: 'Build Success',
-                 body: 'Build passed successfully'
+        success {
+
+            echo 'Build Success'
+
+            // Slack Notification
+            slackSend(
+                channel: '#jenkins',
+                message: "SUCCESS: ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
+            )
+
+            // Email Notification
+            mail(
+                to: 'sunraw541@gmail.com',
+                subject: "SUCCESS: ${env.JOB_NAME}",
+                body: "Build completed successfully"
+            )
         }
 
         failure {
-            slackSend channel: '#jenkins',
-                      message: "Build Failed: ${env.JOB_NAME}"
 
-            mail to: 'yourmail@gmail.com',
-                 subject: 'Build Failed',
-                 body: 'Build failed'
+            echo 'Build Failed'
+
+            // Slack Notification
+            slackSend(
+                channel: '#jenkins',
+                message: "FAILED: ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
+            )
+
+            // Email Notification
+            mail(
+                to: 'sunraw541@gmail.com',
+                subject: "FAILED: ${env.JOB_NAME}",
+                body: "Build failed"
+            )
         }
     }
 }
