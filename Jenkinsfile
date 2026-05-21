@@ -48,7 +48,7 @@ pipeline {
                     }
                 }
 
-                sstage('Code Quality Analysis') {
+                stage('Code Quality Analysis') {
 
     when {
         expression { !params.SKIP_SONAR }
