@@ -34,46 +34,51 @@ pipeline {
             }
         }
 
-        stage('Code Stability') {
+        stage('Parallel Scans') {
 
-            when {
-                expression { !params.SKIP_TEST }
-            }
+            parallel {
 
-            steps {
+                stage('Code Stability') {
 
-                sh 'mvn clean test'
-            }
-        }
+                    when {
+                        expression { !params.SKIP_TEST }
+                    }
 
-        stage('Code Quality Analysis') {
+                    steps {
 
-            when {
-                expression { !params.SKIP_SONAR }
-            }
-
-            steps {
-
-                withSonarQubeEnv('jenkins-test') {
-
-                    sh '''
-                    mvn clean verify sonar:sonar \
-                    -Dsonar.projectKey=jenkins-test \
-                    -Dsonar.host.url=http://192.168.73.191:9000
-                    '''
+                        sh 'mvn clean test'
+                    }
                 }
-            }
-        }
 
-        stage('Code Coverage Analysis') {
+                stage('Code Quality Analysis') {
 
-            when {
-                expression { !params.SKIP_COVERAGE }
-            }
+                    when {
+                        expression { !params.SKIP_SONAR }
+                    }
 
-            steps {
+                    steps {
 
-                sh 'mvn jacoco:report'
+                        withSonarQubeEnv('jenkins-test') {
+
+                            sh '''
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=jenkins-test
+                            '''
+                        }
+                    }
+                }
+
+                stage('Code Coverage Analysis') {
+
+                    when {
+                        expression { !params.SKIP_COVERAGE }
+                    }
+
+                    steps {
+
+                        sh 'mvn jacoco:report'
+                    }
+                }
             }
         }
 
@@ -95,8 +100,6 @@ pipeline {
         stage('Generate Report') {
 
             steps {
-
-                echo 'Generating Build Report'
 
                 junit '**/target/surefire-reports/*.xml'
 
