@@ -48,23 +48,23 @@ pipeline {
                     }
                 }
 
-                stage('Code Quality Analysis') {
+                sstage('Code Quality Analysis') {
 
-                    when {
-                        expression { !params.SKIP_SONAR }
-                    }
+    when {
+        expression { !params.SKIP_SONAR }
+    }
 
-                    steps {
+    steps {
 
-                        withSonarQubeEnv('jenkins-test') {
+        withSonarQubeEnv('jenkins-test') {
 
-                            sh '''
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=jenkins-test
-                            '''
-                        }
-                    }
-                }
+            sh '''
+            mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=jenkins-test
+            '''
+        }
+    }
+}
 
                 stage('Code Coverage Analysis') {
 
