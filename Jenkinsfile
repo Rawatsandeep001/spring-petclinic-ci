@@ -1,3 +1,4 @@
+```groovy
 pipeline {
 
     agent any
@@ -7,7 +8,7 @@ pipeline {
         stage('Code Checkout') {
 
             steps {
-                checkout scm
+                git 'https://github.com/Rawatsandeep001/spring-petclinic-ci.git'
             }
         }
 
@@ -25,7 +26,7 @@ pipeline {
                 stage('Code Quality Analysis') {
 
                     steps {
-                        echo 'SonarQube analysis stage'
+                        echo 'SonarQube Stage Running'
                     }
                 }
 
@@ -39,3 +40,4 @@ pipeline {
         }
     }
 }
+```
